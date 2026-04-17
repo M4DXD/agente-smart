@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>agentesmart — Nutrición IA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--y:#f5c800;--yd:#d4a000;--bg:#0d0c00;--card:rgba(255,255,255,0.04);--border:rgba(245,200,0,0.18);--text:#f0e8cc;--sub:rgba(255,255,255,0.4)}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* BG */
+#bg{position:fixed;inset:0;z-index:0;background:linear-gradient(135deg,#0d0c00,#1c1500,#0d0c00)}
+#bg::before{content:'';position:absolute;top:-10%;right:-5%;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(245,200,0,0.08),transparent 70%)}
+#bg::after{content:'';position:absolute;bottom:-5%;left:-5%;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(245,200,0,0.05),transparent 70%)}
+#grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(245,200,0,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,200,0,0.04) 1px,transparent 1px);background-size:40px 40px}
+
+#app{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:24px 16px 60px}
+
+/* HEADER */
+.logo{display:flex;align-items:center;justify-content:center;gap:10;margin-bottom:8}
+.logo-icon{font-size:30px;color:var(--y);filter:drop-shadow(0 0 12px var(--y))}
+.logo-text{font-size:30px;font-weight:900;letter-spacing:-1.5px;color:#fff}
+.logo-text span{color:var(--y)}
+.tagline{text-align:center;color:rgba(255,255,255,0.35);font-size:14px;margin-bottom:32px}
+
+/* PROGRESS */
+.progress{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4;margin-bottom:28px}
+.p-step{display:flex;align-items:center;gap:6}
+.p-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;transition:all .3s;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.3)}
+.p-dot.active{background:linear-gradient(135deg,var(--y),var(--yd));color:#000;box-shadow:0 0 14px rgba(245,200,0,0.5)}
+.p-label{font-size:11px;font-weight:600;white-space:nowrap;color:rgba(255,255,255,0.3);transition:color .3s}
+.p-label.active{color:var(--y)}
+.p-line{width:28px;height:2px;margin:0 4px;border-radius:2px;background:rgba(255,255,255,0.07);transition:background .3s}
+.p-line.active{background:var(--y)}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;backdrop-filter:blur(20px)}
+.card-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:6px}
+.card-sub{font-size:14px;color:var(--sub);margin-bottom:22px}
+
+/* DROP ZONE */
+.dropzone{border:2px dashed rgba(245,200,0,0.28);border-radius:16px;padding:32px 20px;text-align:center;cursor:pointer;margin-bottom:16px;background:rgba(245,200,0,0.02);transition:border-color .2s}
+.dropzone:hover{border-color:var(--y)}
+.drop-icon{font-size:40px;margin-bottom:10px}
+.drop-txt{color:var(--text);font-weight:600;margin-bottom:4px}
+.drop-sub{color:rgba(255,255,255,0.3);font-size:13px}
+.file-ok{display:flex;flex-direction:column;align-items:center;gap:6}
+.file-name{color:var(--y);font-weight:700}
+.file-change{color:rgba(255,255,255,0.3);font-size:12px}
+
+/* OR DIVIDER */
+.or{text-align:center;color:rgba(255,255,255,0.2);font-size:12px;margin-bottom:12px}
+
+/* TEXTAREA */
+textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px;color:var(--text);font-size:14px;resize:vertical;font-family:inherit;line-height:1.6;transition:border-color .2s;outline:none}
+textarea:focus{border-color:var(--y);box-shadow:0 0 0 3px rgba(245,200,0,0.1)}
+
+/* BUTTONS */
+.btn-primary{width:100%;margin-top:20px;padding:15px 24px;background:linear-gradient(135deg,var(--y),var(--yd));border:none;border-radius:12px;color:#000;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 4px 20px rgba(245,200,0,0.35);font-family:inherit;transition:opacity .2s}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+.btn-secondary{padding:13px 24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:rgba(255,255,255,0.55);font-weight:600;font-size:14px;cursor:pointer;font-family:inherit}
+.btn-row{display:flex;gap:12px;margin-top:20px;align-items:center}
+.btn-row .btn-primary{flex:1;margin-top:0}
+
+/* OPTIONS GRID */
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt-grid-sm{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.opt-card{position:relative;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px;cursor:pointer;transition:all .2s}
+.opt-card:hover{border-color:rgba(245,200,0,0.3)}
+.opt-card.active{background:rgba(245,200,0,0.08);border-color:var(--y);box-shadow:0 0 16px rgba(245,200,0,0.15)}
+.opt-card-sm{position:relative;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px 10px;cursor:pointer;text-align:center;transition:all .2s}
+.opt-card-sm:hover,.opt-card-sm.active{border-color:var(--y)}
+.opt-card-sm.active{background:rgba(245,200,0,0.08);box-shadow:0 0 14px rgba(245,200,0,0.12)}
+.opt-icon{display:block;font-size:22px;margin-bottom:6px}
+.opt-label{display:block;font-weight:700;font-size:13px;color:#fff;margin-bottom:2px}
+.opt-desc{display:block;font-size:11px;color:rgba(255,255,255,0.38);line-height:1.4}
+.opt-check{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--y),var(--yd));color:#000;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+/* BUDGET */
+.field-label{display:block;font-size:12px;font-weight:700;color:rgba(255,255,255,0.42);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.curr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.curr-item{background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s}
+.curr-item:hover,.curr-item.active{border-color:var(--y)}
+.curr-item.active{background:rgba(245,200,0,0.08)}
+.curr-sym{display:block;font-weight:800;font-size:17px;color:#fff}
+.curr-code{display:block;font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px}
+.input-row{display:flex;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;overflow:hidden}
+.input-row:focus-within{border-color:var(--y)}
+.input-prefix{padding:14px;font-size:16px;font-weight:700;color:var(--y);background:rgba(245,200,0,0.07);border-right:1px solid rgba(255,255,255,0.08)}
+.input-row input{flex:1;background:transparent;border:none;padding:14px 16px;color:var(--text);font-size:16px;font-weight:700;font-family:inherit;outline:none}
+.input-suffix{padding:14px;font-size:12px;color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.02);border-left:1px solid rgba(255,255,255,0.08)}
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.preset-card{position:relative;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px;cursor:pointer;transition:all .2s}
+.preset-card.active{background:rgba(245,200,0,0.08);border-color:var(--y);box-shadow:0 0 14px rgba(245,200,0,0.12)}
+.preset-label{display:block;font-weight:700;font-size:14px;color:#fff;margin-bottom:3px}
+.preset-desc{display:block;font-size:12px;color:rgba(255,255,255,0.38)}
+.budget-badge{margin-top:16px;background:rgba(245,200,0,0.07);border:1px solid rgba(245,200,0,0.25);border-radius:12px;padding:12px 16px;font-size:14px;text-align:center}
+.budget-badge strong{color:var(--y)}
+
+/* GENERATING */
+.gen-wrap{text-align:center;padding:70px 20px}
+.gen-orbit{position:relative;width:120px;height:120px;margin:0 auto 32px}
+.gen-ring1{position:absolute;inset:0;border:2px solid rgba(245,200,0,0.45);border-radius:50%;animation:spin 3s linear infinite}
+.gen-ring2{position:absolute;inset:16px;border:2px solid rgba(255,255,255,0.1);border-radius:50%;animation:spinR 2s linear infinite}
+.gen-core{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:36px;color:var(--y);filter:drop-shadow(0 0 14px var(--y))}
+.gen-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:28px}
+.gen-steps{display:flex;flex-direction:column;gap:12px;max-width:280px;margin:0 auto;text-align:left}
+.gen-step{display:flex;align-items:center;gap:12px}
+.gen-dot{width:8px;height:8px;border-radius:50%;background:var(--y);box-shadow:0 0 8px var(--y);flex-shrink:0;animation:pulse 1.4s ease-in-out infinite}
+.gen-step-txt{color:rgba(255,255,255,0.5);font-size:14px}
+
+/* RESULT */
+.result{display:flex;flex-direction:column;gap:16px;animation:fadeUp .4s ease}
+.res-card{background:rgba(255,255,255,0.03);border-width:1px;border-style:solid;border-radius:20px;padding:24px}
+.sec-title{font-size:17px;font-weight:700;color:#fff;margin-bottom:16px}
+
+/* METRICS GRID */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.metric{background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 8px;text-align:center}
+.metric-icon{font-size:18px;display:block}
+.metric-val{font-weight:700;font-size:13px;color:var(--y);display:block;margin-top:4px}
+.metric-lbl{font-size:10px;color:rgba(255,255,255,0.35);line-height:1.2;display:block;margin-top:2px}
+
+/* ALERTS */
+.alerts{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.alert-item{background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:10px 14px;font-size:13px;color:#fbbf24}
+
+/* MACROS */
+.macros-row{display:flex;gap:12px;margin-bottom:14px}
+.macro{flex:1;background:rgba(255,255,255,0.04);border-radius:14px;padding:16px 12px;text-align:center;border-left:3px solid}
+.macro-val{font-weight:800;font-size:20px;display:block}
+.macro-lbl{font-size:12px;color:rgba(255,255,255,0.45)}
+.hydration{background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:10px 16px;font-size:14px;color:#93c5fd;text-align:center}
+
+/* BUDGET RESULT */
+.budget-stats{display:flex;background:rgba(245,200,0,0.06);border-radius:14px;overflow:hidden;margin-bottom:16px}
+.budget-stat{flex:1;padding:18px 16px;text-align:center}
+.budget-stat-val{font-weight:800;font-size:22px;color:var(--y);display:block}
+.budget-stat-lbl{font-size:11px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.4px}
+.budget-divider{width:1px;background:rgba(245,200,0,0.2);flex-shrink:0}
+.shopping-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shop-item{background:rgba(255,255,255,0.04);border-radius:10px;padding:8px 12px;font-size:13px;color:rgba(255,255,255,0.68)}
+.shop-dot{color:var(--y);font-weight:700;margin-right:6px}
+.saving-tip{background:rgba(245,200,0,0.06);border-left:3px solid var(--y);border-radius:0 10px 10px 0;padding:10px 14px;font-size:13px;color:rgba(255,255,255,0.7)}
+.section-mini{font-size:12px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px}
+
+/* TIPS */
+.tip-item{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.tip-num{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--y),var(--yd));color:#000;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tip-txt{font-size:14px;color:rgba(255,255,255,0.72);line-height:1.6}
+
+/* DAY TABS */
+.day-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.day-tab{padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:rgba(255,255,255,0.42);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.day-tab.active{background:rgba(245,200,0,0.1);border-color:var(--y);color:var(--y)}
+
+/* MEALS */
+.meal-card{background:rgba(255,255,255,0.03);border-left:3px solid;border-radius:0 12px 12px 0;padding:14px 16px;margin-bottom:10px}
+.meal-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.meal-type-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.5px;flex:1}
+.meal-badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px}
+.meal-name{font-weight:700;font-size:15px;color:#fff;margin-bottom:4px}
+.meal-desc{font-size:13px;color:rgba(255,255,255,0.52);line-height:1.5;margin-bottom:6px}
+.meal-tip{font-size:12px;color:rgba(255,255,255,0.35);font-style:italic}
+
+/* SUPP */
+.supp-item{background:rgba(16,185,129,0.07);border-radius:10px;padding:10px 14px;font-size:14px;color:#6ee7b7;margin-bottom:8px}
+.disclaimer{font-size:11px;color:rgba(255,255,255,0.22);font-style:italic}
+
+/* ERROR */
+.error-box{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:16px;color:#fca5a5;text-align:center;margin-top:16px}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinR{to{transform:rotate(-360deg)}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:rgba(245,200,0,0.3);border-radius:3px}
+
+@media(max-width:480px){
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .macros-row{flex-direction:column}
+  .opt-grid{grid-template-columns:1fr 1fr}
+  .opt-grid-sm{grid-template-columns:1fr 1fr}
+  .curr-grid{grid-template-columns:repeat(4,1fr)}
+  .shopping-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="bg"></div><div id="grid"></div>
+<div id="app">
+  <!-- HEADER -->
+  <header style="text-align:center;margin-bottom:32px;padding-top:16px">
+    <div class="logo"><span class="logo-icon">◈</span><span class="logo-text">agente<span>smart</span></span></div>
+    <p class="tagline">Nutrición inteligente basada en tu composición corporal</p>
+  </header>
+
+  <!-- PROGRESS -->
+  <div class="progress" id="progress-bar">
+    <div class="p-step"><div class="p-dot active" id="pd0">1</div><span class="p-label active" id="pl0">Informe</span><div class="p-line" id="pline0"></div></div>
+    <div class="p-step"><div class="p-dot" id="pd1">2</div><span class="p-label" id="pl1">Objetivos</span><div class="p-line" id="pline1"></div></div>
+    <div class="p-step"><div class="p-dot" id="pd2">3</div><span class="p-label" id="pl2">Restricciones</span><div class="p-line" id="pline2"></div></div>
+    <div class="p-step"><div class="p-dot" id="pd3">4</div><span class="p-label" id="pl3">Presupuesto</span></div>
+  </div>
+
+  <!-- STEPS CONTAINER -->
+  <div id="steps"></div>
+</div>
+
+<script>
+// ── STATE ──
+const state = {
+  step: 0, // 0=upload,1=goals,2=restrictions,3=budget,4=generating,5=result
+  reportText: '',
+  uploadedName: '',
+  goals: [],
+  restrictions: [],
+  extraNotes: '',
+  currency: 'CLP',
+  weeklyBudget: '',
+  budgetPreset: null,
+  budgetNotes: '',
+  diet: null,
+};
+
+const GOALS = [
+  {id:'lose_weight',icon:'⚡',label:'Bajar de peso',desc:'Déficit calórico controlado'},
+  {id:'gain_weight',icon:'📈',label:'Subir de peso',desc:'Superávit calórico limpio'},
+  {id:'muscle_gain',icon:'💪',label:'Ganar masa muscular',desc:'Alto en proteínas'},
+  {id:'fat_burn',icon:'🔥',label:'Quemar grasa',desc:'Preservar músculo'},
+  {id:'health',icon:'🌿',label:'Mejorar salud general',desc:'Nutrición balanceada'},
+  {id:'energy',icon:'🌀',label:'Más energía',desc:'Carbos complejos & hierro'},
+  {id:'detox',icon:'🫧',label:'Desintoxicar',desc:'Alimentos naturales'},
+  {id:'core',icon:'🎯',label:'Trabajar zona media',desc:'Anti-inflamatorio'},
+];
+
+const RESTRICTIONS = [
+  {id:'vegetarian',icon:'🥦',label:'Vegetariano'},
+  {id:'vegan',icon:'🌱',label:'Vegano'},
+  {id:'gluten_free',icon:'🚫',label:'Sin Gluten'},
+  {id:'lactose_free',icon:'🥛',label:'Sin Lactosa'},
+  {id:'no_pork',icon:'🐷',label:'Sin cerdo'},
+  {id:'no_shellfish',icon:'🦐',label:'Sin mariscos'},
+  {id:'low_sodium',icon:'🧂',label:'Bajo en sodio'},
+  {id:'diabetic',icon:'💉',label:'Diabético'},
+  {id:'nut_allergy',icon:'🥜',label:'Alergia a nueces'},
+  {id:'none',icon:'✅',label:'Sin restricciones'},
+];
+
+const CURRENCIES = [
+  {id:'CLP',sym:'$',label:'Peso chileno'},
+  {id:'USD',sym:'US$',label:'Dólar'},
+  {id:'ARS',sym:'$',label:'Peso argentino'},
+  {id:'COP',sym:'$',label:'Peso colombiano'},
+  {id:'MXN',sym:'$',label:'Peso mexicano'},
+  {id:'PEN',sym:'S/',label:'Sol peruano'},
+  {id:'BRL',sym:'R$',label:'Real brasileño'},
+  {id:'EUR',sym:'€',label:'Euro'},
+];
+
+const PRESETS = [
+  {label:'Muy ajustado',desc:'Lo esencial, sin lujos'},
+  {label:'Moderado',desc:'Equilibrio calidad/precio'},
+  {label:'Cómodo',desc:'Buena variedad'},
+  {label:'Sin límite',desc:'Máxima calidad'},
+];
+
+const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const MEALS = {
+  breakfast:{label:'Desayuno',icon:'🌅',color:'#f59e0b'},
+  snack1:{label:'Media mañana',icon:'🍎',color:'#10b981'},
+  lunch:{label:'Almuerzo',icon:'☀️',color:'#3b82f6'},
+  snack2:{label:'Merienda',icon:'🌿',color:'#8b5cf6'},
+  dinner:{label:'Cena',icon:'🌙',color:'#ec4899'},
+};
+
+let activeDay = 'Lunes';
+let genDots = '';
+let genInterval = null;
+
+// ── PROGRESS UPDATE ──
+function updateProgress() {
+  const s = state.step;
+  for(let i=0;i<4;i++){
+    const dot = document.getElementById('pd'+i);
+    const lbl = document.getElementById('pl'+i);
+    const line = document.getElementById('pline'+i);
+    if(!dot) continue;
+    if(i < s){
+      dot.classList.add('active'); dot.textContent='✓';
+      lbl && lbl.classList.add('active');
+      line && line.classList.add('active');
+    } else if(i === s){
+      dot.classList.add('active'); dot.textContent=(i+1)+'';
+      lbl && lbl.classList.add('active');
+      line && line.classList.remove('active');
+    } else {
+      dot.classList.remove('active'); dot.textContent=(i+1)+'';
+      lbl && lbl.classList.remove('active');
+      line && line.classList.remove('active');
+    }
+  }
+  const pb = document.getElementById('progress-bar');
+  if(pb) pb.style.display = (s<=3) ? 'flex' : 'none';
+}
+
+// ── RENDER ──
+function render() {
+  updateProgress();
+  const el = document.getElementById('steps');
+  switch(state.step){
+    case 0: el.innerHTML = renderUpload(); bindUpload(); break;
+    case 1: el.innerHTML = renderGoals(); bindGoals(); break;
+    case 2: el.innerHTML = renderRestrictions(); bindRestrictions(); break;
+    case 3: el.innerHTML = renderBudget(); bindBudget(); break;
+    case 4: el.innerHTML = renderGenerating(); startGenDots(); break;
+    case 5: el.innerHTML = renderResult(); bindResult(); break;
+  }
+}
+
+// ── STEP 0: UPLOAD ──
+function renderUpload(){
+  return `<div class="card">
+    <div class="card-title">📋 Sube tu informe corporal</div>
+    <div class="card-sub">Escáner Smart Fit Body — PDF, TXT, JPG o PNG</div>
+    <div class="dropzone" id="dropzone">
+      ${state.uploadedName
+        ? `<div class="file-ok"><span style="font-size:36px">✅</span><span class="file-name">${state.uploadedName}</span><span class="file-change">Cambiar archivo</span></div>`
+        : `<div class="drop-icon">📤</div><div class="drop-txt">Arrastra tu informe aquí</div><div class="drop-sub">o haz click para seleccionar</div>`}
+    </div>
+    <input type="file" id="file-input" accept=".pdf,.txt,.png,.jpg,.jpeg" style="display:none"/>
+    <div class="or">— o ingresa los datos manualmente —</div>
+    <textarea id="report-text" rows="8" placeholder="Pega aquí los datos de tu informe:
+
+Peso: 72 kg
+IMC: 24.5
+Grasa corporal: 22%
+Grasa visceral: 8
+Masa magra: 56 kg
+Agua corporal: 55%
+Tasa metabólica basal: 1680 kcal">${state.reportText}</textarea>
+    <button class="btn-primary" id="btn-upload" ${(!state.uploadedName && state.reportText.length < 10)?'disabled':''}>Continuar →</button>
+  </div>`;
+}
+
+function bindUpload(){
+  const dz = document.getElementById('dropzone');
+  const fi = document.getElementById('file-input');
+  const ta = document.getElementById('report-text');
+  const btn = document.getElementById('btn-upload');
+
+  dz.onclick = () => fi.click();
+  dz.ondragover = e => e.preventDefault();
+  dz.ondrop = e => { e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) readFile(f); };
+  fi.onchange = e => { if(e.target.files[0]) readFile(e.target.files[0]); };
+  ta.oninput = e => {
+    state.reportText = e.target.value;
+    btn.disabled = !state.uploadedName && state.reportText.length < 10;
+  };
+  btn.onclick = () => { state.step=1; render(); };
+}
+
+function readFile(f){
+  state.uploadedName = f.name;
+  const r = new FileReader();
+  r.onload = e => { state.reportText = e.target.result; render(); };
+  r.readAsText(f);
+}
+
+// ── STEP 1: GOALS ──
+function renderGoals(){
+  const cards = GOALS.map(g => `
+    <div class="opt-card ${state.goals.includes(g.id)?'active':''}" data-id="${g.id}" onclick="toggleGoal('${g.id}')">
+      <span class="opt-icon">${g.icon}</span>
+      <span class="opt-label">${g.label}</span>
+      <span class="opt-desc">${g.desc}</span>
+      ${state.goals.includes(g.id)?'<div class="opt-check">✓</div>':''}
+    </div>`).join('');
+  return `<div class="card">
+    <div class="card-title">🎯 ¿Cuáles son tus objetivos?</div>
+    <div class="card-sub">Selecciona uno o varios</div>
+    <div class="opt-grid">${cards}</div>
+    <textarea id="extra-notes" rows="3" style="margin-top:16px" placeholder="Notas (opcional): ¿entrenas? ¿zona específica del cuerpo? ¿días por semana?...">${state.extraNotes}</textarea>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goBack()">← Volver</button>
+      <button class="btn-primary" id="btn-goals" ${!state.goals.length?'disabled':''} onclick="goNext()">Continuar →</button>
+    </div>
+  </div>`;
+}
+
+function bindGoals(){
+  const ta = document.getElementById('extra-notes');
+  if(ta) ta.oninput = e => state.extraNotes = e.target.value;
+}
+
+function toggleGoal(id){
+  if(state.goals.includes(id)) state.goals = state.goals.filter(x=>x!==id);
+  else state.goals.push(id);
+  render();
+}
+
+// ── STEP 2: RESTRICTIONS ──
+function renderRestrictions(){
+  const cards = RESTRICTIONS.map(r => `
+    <div class="opt-card-sm ${state.restrictions.includes(r.id)?'active':''}" onclick="toggleRestr('${r.id}')">
+      <span class="opt-icon">${r.icon}</span>
+      <span class="opt-label">${r.label}</span>
+      ${state.restrictions.includes(r.id)?'<div class="opt-check">✓</div>':''}
+    </div>`).join('');
+  return `<div class="card">
+    <div class="card-title">🍽️ Restricciones alimentarias</div>
+    <div class="card-sub">Alergias, intolerancias o preferencias</div>
+    <div class="opt-grid-sm">${cards}</div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goBack()">← Volver</button>
+      <button class="btn-primary" onclick="goNext()">Continuar →</button>
+    </div>
+  </div>`;
+}
+
+function bindRestrictions(){}
+
+function toggleRestr(id){
+  if(id==='none'){ state.restrictions=['none']; render(); return; }
+  state.restrictions = state.restrictions.filter(x=>x!=='none');
+  if(state.restrictions.includes(id)) state.restrictions = state.restrictions.filter(x=>x!==id);
+  else state.restrictions.push(id);
+  render();
+}
+
+// ── STEP 3: BUDGET ──
+function renderBudget(){
+  const curr = CURRENCIES.find(c=>c.id===state.currency)||CURRENCIES[0];
+  const currCards = CURRENCIES.map(c=>`
+    <div class="curr-item ${state.currency===c.id?'active':''}" onclick="setCurrency('${c.id}')">
+      <span class="curr-sym">${c.sym}</span>
+      <span class="curr-code">${c.id}</span>
+    </div>`).join('');
+  const presetCards = PRESETS.map((p,i)=>`
+    <div class="preset-card ${state.budgetPreset===i&&!state.weeklyBudget?'active':''}" onclick="setPreset(${i})">
+      <span class="preset-label">${p.label}</span>
+      <span class="preset-desc">${p.desc}</span>
+      ${state.budgetPreset===i&&!state.weeklyBudget?'<div class="opt-check">✓</div>':''}
+    </div>`).join('');
+
+  const budgetLabel = state.weeklyBudget
+    ? `${curr.sym}${Number(state.weeklyBudget).toLocaleString()} ${state.currency}/semana`
+    : state.budgetPreset!==null ? PRESETS[state.budgetPreset].label : null;
+
+  return `<div class="card">
+    <div class="card-title">💰 Presupuesto semanal</div>
+    <div class="card-sub">La IA elegirá alimentos que puedas comprar dentro de tu presupuesto</div>
+
+    <label class="field-label">Moneda</label>
+    <div class="curr-grid">${currCards}</div>
+
+    <label class="field-label" style="margin-top:20px">Monto semanal <span style="color:rgba(255,255,255,0.3);font-weight:400;text-transform:none">(opcional)</span></label>
+    <div class="input-row">
+      <span class="input-prefix" id="curr-sym-display">${curr.sym}</span>
+      <input type="number" id="budget-input" placeholder="Ej: 35000" value="${state.weeklyBudget}"/>
+      <span class="input-suffix" id="curr-suffix">${state.currency}/semana</span>
+    </div>
+
+    <label class="field-label" style="margin-top:20px">— o elige un rango —</label>
+    <div class="preset-grid">${presetCards}</div>
+
+    <label class="field-label" style="margin-top:20px">Notas de tu mercado local <span style="color:rgba(255,255,255,0.3);font-weight:400;text-transform:none">(opcional)</span></label>
+    <textarea id="budget-notes" rows="3" placeholder="Ej: Compro en Líder, hay feria cerca, prefiero evitar marcas caras...">${state.budgetNotes}</textarea>
+
+    ${budgetLabel ? `<div class="budget-badge">💰 Presupuesto seleccionado: <strong>${budgetLabel}</strong></div>` : ''}
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goBack()">← Volver</button>
+      <button class="btn-primary" onclick="generateDiet()">✨ Generar mi plan</button>
+    </div>
+  </div>`;
+}
+
+function bindBudget(){
+  const inp = document.getElementById('budget-input');
+  const ta  = document.getElementById('budget-notes');
+  if(inp) inp.oninput = e => { state.weeklyBudget=e.target.value; state.budgetPreset=null; updateBudgetUI(); };
+  if(ta)  ta.oninput  = e => state.budgetNotes = e.target.value;
+}
+
+function updateBudgetUI(){
+  const curr = CURRENCIES.find(c=>c.id===state.currency)||CURRENCIES[0];
+  const d1 = document.getElementById('curr-sym-display');
+  const d2 = document.getElementById('curr-suffix');
+  if(d1) d1.textContent = curr.sym;
+  if(d2) d2.textContent = state.currency+'/semana';
+}
+
+function setCurrency(id){ state.currency=id; render(); }
+function setPreset(i){ state.budgetPreset=i; state.weeklyBudget=''; render(); }
+
+// ── STEP 4: GENERATING ──
+function renderGenerating(){
+  return `<div class="gen-wrap">
+    <div class="gen-orbit">
+      <div class="gen-ring1"></div>
+      <div class="gen-ring2"></div>
+      <div class="gen-core">◈</div>
+    </div>
+    <div class="gen-title" id="gen-title">Creando tu plan</div>
+    <div class="gen-steps">
+      ${['Procesando informe corporal','Calculando macronutrientes','Ajustando al presupuesto','Diseñando plan semanal'].map((t,i)=>`
+      <div class="gen-step">
+        <div class="gen-dot" style="animation-delay:${i*0.25}s"></div>
+        <span class="gen-step-txt">${t}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function startGenDots(){
+  clearInterval(genInterval);
+  genDots='';
+  genInterval = setInterval(()=>{
+    genDots = genDots.length>=3 ? '' : genDots+'.';
+    const el = document.getElementById('gen-title');
+    if(el) el.textContent = 'Creando tu plan'+genDots;
+  },400);
+}
+
+// ── GENERATE DIET ──
+async function generateDiet(){
+  state.step=4; render();
+  const curr = CURRENCIES.find(c=>c.id===state.currency)||CURRENCIES[0];
+  const goalsText   = state.goals.map(g=>GOALS.find(o=>o.id===g)?.label).filter(Boolean).join(', ')||'Mejorar salud general';
+  const restrText   = state.restrictions.map(r=>RESTRICTIONS.find(o=>o.id===r)?.label).filter(Boolean).join(', ')||'Ninguna';
+  const budgetText  = state.weeklyBudget
+    ? `${curr.sym}${Number(state.weeklyBudget).toLocaleString()} ${state.currency} por semana (aprox. ${curr.sym}${Math.round(Number(state.weeklyBudget)/7).toLocaleString()} por día)`
+    : state.budgetPreset!==null ? `Presupuesto "${PRESETS[state.budgetPreset].label}": ${PRESETS[state.budgetPreset].desc}` : 'Sin restricción de presupuesto';
+
+  const prompt = `Eres un nutricionista experto. Analiza el informe de escaneo corporal Smart Fit y genera un plan de alimentación semanal personalizado.
+
+INFORME CORPORAL:
+${state.reportText||'Sin informe. Genera una dieta balanceada de referencia para adulto promedio.'}
+
+OBJETIVOS: ${goalsText}
+RESTRICCIONES ALIMENTARIAS: ${restrText}
+PRESUPUESTO SEMANAL: ${budgetText}
+MONEDA: ${state.currency}
+NOTAS MERCADO LOCAL: ${state.budgetNotes||'Ninguna'}
+OTRAS NOTAS: ${state.extraNotes||'Ninguna'}
+
+INSTRUCCIÓN DE PRESUPUESTO: Todos los alimentos deben ser accesibles en supermercados locales y ajustarse al presupuesto. Si es ajustado, prioriza legumbres, huevos, avena, arroz, verduras de temporada y proteínas económicas. Incluye el costo estimado por comida en ${state.currency}.
+
+Responde ÚNICAMENTE con JSON válido (sin markdown, sin bloques de código):
+{"bodyAnalysis":{"imc":"N/D","bodyFat":"N/D","visceralFat":"N/D","leanMass":"N/D","water":"N/D","bmr":"N/D","weight":"N/D","summary":"Resumen 2 oraciones","mainAlerts":["alerta1","alerta2"]},"generalTips":["tip1","tip2","tip3","tip4","tip5"],"dailyCalories":2000,"macros":{"protein":"150g","carbs":"220g","fat":"65g"},"budgetSummary":{"weeklyEstimate":"estimado semana","dailyEstimate":"estimado dia","savingsTips":["consejo1","consejo2","consejo3"],"shoppingList":["item1 (cant)","item2","item3","item4","item5","item6","item7","item8","item9","item10"]},"weeklyPlan":{"Lunes":{"breakfast":{"name":"nombre","description":"desc","calories":350,"estimatedCost":"precio","tips":"tip"},"snack1":{"name":"nombre","description":"desc","calories":150,"estimatedCost":"precio","tips":"tip"},"lunch":{"name":"nombre","description":"desc","calories":600,"estimatedCost":"precio","tips":"tip"},"snack2":{"name":"nombre","description":"desc","calories":200,"estimatedCost":"precio","tips":"tip"},"dinner":{"name":"nombre","description":"desc","calories":500,"estimatedCost":"precio","tips":"tip"}},"Martes":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Miércoles":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Jueves":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Viernes":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Sábado":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Domingo":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}}},"hydrationGoal":"2.5 litros","supplementSuggestions":["sugerencia1","sugerencia2"]}`;
+
+  try {
+    const res  = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]})});
+    const data = await res.json();
+    const txt  = (data.content||[]).map(i=>i.text||'').join('');
+    const clean = txt.replace(/```json|```/g,'').trim();
+    state.diet = JSON.parse(clean);
+    clearInterval(genInterval);
+    state.step=5; render();
+  } catch(e) {
+    clearInterval(genInterval);
+    showError('Error generando el plan. Por favor intenta de nuevo.');
+    state.step=3; render();
+  }
+}
+
+function showError(msg){
+  const el = document.getElementById('steps');
+  const err = document.createElement('div');
+  err.className='error-box'; err.textContent=msg;
+  el.appendChild(err);
+  setTimeout(()=>err.remove(),5000);
+}
+
+// ── STEP 5: RESULT ──
+function renderResult(){
+  const d = state.diet;
+  const ba = d.bodyAnalysis||{};
+  const metrics = [
+    ['⚖️','Peso',ba.weight],['📏','IMC',ba.imc],['🔬','Grasa corp.',ba.bodyFat],
+    ['🫀','Grasa visc.',ba.visceralFat],['💪','Masa magra',ba.leanMass],
+    ['💧','Agua corp.',ba.water],['⚡','TMB',ba.bmr],['🔥','Cal./día',d.dailyCalories+' kcal'],
+  ];
+
+  const metricsHTML = metrics.map(([icon,lbl,val])=>`
+    <div class="metric">
+      <span class="metric-icon">${icon}</span>
+      <span class="metric-val">${val||'N/D'}</span>
+      <span class="metric-lbl">${lbl}</span>
+    </div>`).join('');
+
+  const alertsHTML = (ba.mainAlerts||[]).map(a=>`<div class="alert-item">⚠️ ${a}</div>`).join('');
+
+  const macrosHTML = [
+    ['Proteínas',d.macros?.protein,'#f59e0b'],
+    ['Carbohidratos',d.macros?.carbs,'#3b82f6'],
+    ['Grasas',d.macros?.fat,'#10b981'],
+  ].map(([l,v,c])=>`<div class="macro" style="border-color:${c}"><span class="macro-val" style="color:${c}">${v}</span><span class="macro-lbl">${l}</span></div>`).join('');
+
+  const bs = d.budgetSummary||{};
+  const shoppingHTML = (bs.shoppingList||[]).map(item=>`<div class="shop-item"><span class="shop-dot">·</span>${item}</div>`).join('');
+  const savingHTML = (bs.savingsTips||[]).map(t=>`<div class="saving-tip">${t}</div>`).join('');
+
+  const tipsHTML = (d.generalTips||[]).map((t,i)=>`<div class="tip-item"><div class="tip-num">${i+1}</div><span class="tip-txt">${t}</span></div>`).join('');
+
+  const dayTabsHTML = DAYS.map(day=>`<button class="day-tab ${day===activeDay?'active':''}" onclick="switchDay('${day}')">${day.slice(0,3)}</button>`).join('');
+
+  const mealsHTML = renderMeals(d.weeklyPlan?.[activeDay]);
+
+  const suppHTML = (d.supplementSuggestions||[]).map(s=>`<div class="supp-item">${s}</div>`).join('');
+
+  return `<div class="result">
+    <!-- BODY ANALYSIS -->
+    <div class="res-card" style="border-color:rgba(245,200,0,0.2)">
+      <div class="sec-title">📊 Tu análisis corporal</div>
+      <p style="color:rgba(255,255,255,0.58);font-size:14px;line-height:1.6;margin-bottom:20px">${ba.summary||''}</p>
+      <div class="metrics-grid">${metricsHTML}</div>
+      ${alertsHTML?`<div class="alerts">${alertsHTML}</div>`:''}
+    </div>
+
+    <!-- MACROS -->
+    <div class="res-card" style="border-color:rgba(59,130,246,0.2)">
+      <div class="sec-title">🧬 Macros diarios objetivo</div>
+      <div class="macros-row">${macrosHTML}</div>
+      <div class="hydration">💧 Meta de hidratación: <strong>${d.hydrationGoal||'2 litros'}</strong></div>
+    </div>
+
+    <!-- BUDGET SUMMARY -->
+    <div class="res-card" style="border-color:rgba(245,200,0,0.25)">
+      <div class="sec-title">💰 Resumen de presupuesto</div>
+      <div class="budget-stats">
+        <div class="budget-stat">
+          <span class="budget-stat-val">${bs.weeklyEstimate||'—'}</span>
+          <span class="budget-stat-lbl">estimado / semana</span>
+        </div>
+        <div class="budget-divider"></div>
+        <div class="budget-stat">
+          <span class="budget-stat-val">${bs.dailyEstimate||'—'}</span>
+          <span class="budget-stat-lbl">estimado / día</span>
+        </div>
+      </div>
+      ${shoppingHTML?`<div class="section-mini">🛒 Lista de compras semanal</div><div class="shopping-grid">${shoppingHTML}</div>`:''}
+      ${savingHTML?`<div class="section-mini" style="margin-top:16px">💡 Consejos de ahorro</div><div style="display:flex;flex-direction:column;gap:8px">${savingHTML}</div>`:''}
+    </div>
+
+    <!-- TIPS -->
+    <div class="res-card" style="border-color:rgba(139,92,246,0.2)">
+      <div class="sec-title">💡 Recomendaciones personalizadas</div>
+      ${tipsHTML}
+    </div>
+
+    <!-- WEEKLY PLAN -->
+    <div class="res-card" style="border-color:rgba(255,255,255,0.1)">
+      <div class="sec-title">📅 Plan semanal — Lunes a Domingo</div>
+      <div class="day-tabs" id="day-tabs">${dayTabsHTML}</div>
+      <div id="meals-container">${mealsHTML}</div>
+    </div>
+
+    <!-- SUPPLEMENTS -->
+    ${suppHTML?`<div class="res-card" style="border-color:rgba(16,185,129,0.18)">
+      <div class="sec-title">💊 Suplementos sugeridos</div>
+      ${suppHTML}
+      <p class="disclaimer">* Consulta con tu médico antes de iniciar cualquier suplementación.</p>
+    </div>`:''}
+
+    <button class="btn-secondary" style="width:100%;text-align:center" onclick="resetAll()">🔄 Generar nuevo plan</button>
+  </div>`;
+}
+
+function renderMeals(dayPlan){
+  if(!dayPlan) return '<p style="color:rgba(255,255,255,0.4)">Sin datos para este día.</p>';
+  return Object.entries(dayPlan).map(([key,meal])=>{
+    const m = MEALS[key];
+    if(!m) return '';
+    return `<div class="meal-card" style="border-left-color:${m.color}">
+      <div class="meal-header">
+        <span style="font-size:16px">${m.icon}</span>
+        <span class="meal-type-lbl">${m.label}</span>
+        <span class="meal-badge" style="background:${m.color}22;color:${m.color}">${meal.calories} kcal</span>
+        ${meal.estimatedCost?`<span class="meal-badge" style="background:rgba(245,200,0,0.12);color:#f5c800">${meal.estimatedCost}</span>`:''}
+      </div>
+      <div class="meal-name">${meal.name}</div>
+      <div class="meal-desc">${meal.description}</div>
+      ${meal.tips?`<div class="meal-tip">💡 ${meal.tips}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function bindResult(){}
+
+function switchDay(day){
+  activeDay = day;
+  const tabs = document.querySelectorAll('.day-tab');
+  tabs.forEach(t=>{ t.classList.toggle('active', t.textContent===day.slice(0,3)); });
+  const mc = document.getElementById('meals-container');
+  if(mc) mc.innerHTML = renderMeals(state.diet?.weeklyPlan?.[day]);
+}
+
+// ── NAV ──
+function goNext(){ state.step = Math.min(state.step+1,3); render(); }
+function goBack(){ state.step = Math.max(state.step-1,0); render(); }
+function resetAll(){
+  Object.assign(state,{step:0,reportText:'',uploadedName:'',goals:[],restrictions:[],extraNotes:'',currency:'CLP',weeklyBudget:'',budgetPreset:null,budgetNotes:'',diet:null});
+  activeDay='Lunes'; clearInterval(genInterval);
+  render();
+}
+
+// ── INIT ──
+render();
+</script>
+</body>
+</html>
