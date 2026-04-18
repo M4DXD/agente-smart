@@ -539,18 +539,29 @@ Responde ÚNICAMENTE con JSON válido (sin markdown, sin bloques de código):
 {"bodyAnalysis":{"imc":"N/D","bodyFat":"N/D","visceralFat":"N/D","leanMass":"N/D","water":"N/D","bmr":"N/D","weight":"N/D","summary":"Resumen 2 oraciones","mainAlerts":["alerta1","alerta2"]},"generalTips":["tip1","tip2","tip3","tip4","tip5"],"dailyCalories":2000,"macros":{"protein":"150g","carbs":"220g","fat":"65g"},"budgetSummary":{"weeklyEstimate":"estimado semana","dailyEstimate":"estimado dia","savingsTips":["consejo1","consejo2","consejo3"],"shoppingList":["item1 (cant)","item2","item3","item4","item5","item6","item7","item8","item9","item10"]},"weeklyPlan":{"Lunes":{"breakfast":{"name":"nombre","description":"desc","calories":350,"estimatedCost":"precio","tips":"tip"},"snack1":{"name":"nombre","description":"desc","calories":150,"estimatedCost":"precio","tips":"tip"},"lunch":{"name":"nombre","description":"desc","calories":600,"estimatedCost":"precio","tips":"tip"},"snack2":{"name":"nombre","description":"desc","calories":200,"estimatedCost":"precio","tips":"tip"},"dinner":{"name":"nombre","description":"desc","calories":500,"estimatedCost":"precio","tips":"tip"}},"Martes":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Miércoles":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Jueves":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Viernes":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Sábado":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}},"Domingo":{"breakfast":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack1":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"lunch":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"snack2":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""},"dinner":{"name":"","description":"","calories":0,"estimatedCost":"","tips":""}}},"hydrationGoal":"2.5 litros","supplementSuggestions":["sugerencia1","sugerencia2"]}`;
 
   try {
-    const res  = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]})});
-    const data = await res.json();
-    const txt  = (data.content||[]).map(i=>i.text||'').join('');
-    const clean = txt.replace(/```json|```/g,'').trim();
-    state.diet = JSON.parse(clean);
-    clearInterval(genInterval);
-    state.step=5; render();
-  } catch(e) {
-    clearInterval(genInterval);
-    showError('Error generando el plan. Por favor intenta de nuevo.');
-    state.step=3; render();
-  }
+            const res = await fetch('https://hook.us2.make.com/bcqr2hj788cisw5lfaimht480rve9srh', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    prompt: prompt,
+                    usuario: state.userName,
+                    objetivo: state.goal 
+                })
+            });
+
+            const data = await res.json();
+            state.diet = data; 
+            
+            clearInterval(genInterval);
+            state.step = 5; 
+            render();
+        } catch(e) {
+            console.error("Error en conexión:", e);
+            clearInterval(genInterval);
+            showError('Error al generar el plan. Por favor intenta de nuevo.');
+            state.step = 3; 
+            render();
+        }
 }
 
 function showError(msg){
